@@ -65,4 +65,6 @@ correct_arc_step69.txt
 re_new/
 val.txt
 ANG/
+*.gif
+convert2gif.py
 

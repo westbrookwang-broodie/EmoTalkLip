@@ -1,68 +1,47 @@
-# TalkLip net
+# EmoTalkLip
 
-This repo is the official implementation of 'Seeing What You Said: Talking Face Generation Guided by a Lip Reading Expert', CVPR 2023.
+<img src="https://media.giphy.com/media/95NxuBd07zpciqwkt6/giphy.gif" style="zoom:150%;" /><img src="https://media.giphy.com/media/hbPb4BX8hSYZAC1eZu/giphy.gif" style="zoom:150%;" />
 
-[Arxiv](http://arxiv.org/abs/2303.17480) | [Paper](https://openaccess.thecvf.com/content/CVPR2023/papers/Wang_Seeing_What_You_Said_Talking_Face_Generation_Guided_by_a_CVPR_2023_paper.pdf)
-# 🔥 News
-1. We upload a Talking_face_demo.pptx to this repository which contains some demo videos.
-2. Fix the GPU out-of-memory error in train.py. Running train.py with a batch_size of 8 requires approximately 24GB of memory. However, in some rare cases, it might need more than 24GB and trigger an error. We have resolved this issue using a try-and-catch mechanism. --  19/July/2023
-3. We upload a checkpoint of the discriminator as requested in the issue.
-4. We upload an eval_lrs.sh in the evaluation folder, which allows you to evaluate all metrics on LRS2 with a single command.
+<img src="https://media.giphy.com/media/qNYmA5iKGYVeI54cab/giphy.gif" style="zoom: 200%;" /><img src="https://media.giphy.com/media/u9FmVng5P1TvMbKzD8/giphy.gif" style="zoom: 200%;" /><img src="https://media.giphy.com/media/FQ7Frv6JBbCCazIjYA/giphy.gif" style="zoom: 200%;" /><img src="https://media.giphy.com/media/W0FKf6SlwgyvuT11Mw/giphy.gif" style="zoom: 200%;" />
+## Prerequisite
 
-## Prerequisite 
-
-1. `pip install torch==1.12.0+cu113 torchvision==0.13.0+cu113 -f https://download.pytorch.org/whl/torch_stable.html`.
-2. Install [AV-Hubert](https://github.com/facebookresearch/av_hubert) by following his installation.
-3. Install supplementary packages via `pip install -r requirement.txt`
-5. Install ffmpeg. We adopt version=4.3.2. Please double check wavforms extracted from mp4 files. Extracted wavforms should not contain prefix of 0. If you use anaconda, you can refer to `conda install -c conda-forge ffmpeg==4.2.3`
+1. `pip install torch==1.13.1+cu116 torchvision==0.14.1+cu116 -f https://download.pytorch.org/whl/torch_stable.html` .
+2. Install [AV-hubert](https://github.com/facebookresearch/av_hubert) by following his installation
+3. Install supplementary packages via `pip install -r requirements.txt`
+4. Install ffmpeg.
+5. Install [DiffBIR](https://github.com/XPixelGroup/DiffBIR) by following his installation.  Please be attention that we use the version 1.13.1+cu116 so please install xformers 0.0.16.
 6. Download the pre-trained checkpoint of face detector [pre-trained model](https://www.adrianbulat.com/downloads/python-fan/s3fd-619a316812.pth) and put it to `face_detection/detection/sfd/s3fd.pth`. Alternative [link](https://iiitaphyd-my.sharepoint.com/:u:/g/personal/prajwal_k_research_iiit_ac_in/EZsy6qWuivtDnANIG73iHjIBjMSoojcIV0NULXV-yiuiIg?e=qTasa8).
-
 
 ## Dataset and pre-processing
 
-1. Download [LRS2](https://www.robots.ox.ac.uk/~vgg/data/lip_reading/lrs2.html) for training and evaluation. Note that we do not use the pretrain set.
-2. Download [LRW](https://www.robots.ox.ac.uk/~vgg/data/lip_reading/lrw1.html) for evaluation.
-3. To extract wavforms from mp4 files:
-```
+1. Download the [LR2](https://www.robots.ox.ac.uk/~vgg/data/lip_reading/lrs2.html) for training and evaluation.
+2. Download the [LRW](https://www.robots.ox.ac.uk/~vgg/data/lip_reading/lrw1.html) for evaluation.
+3. Download the Crema-d from the [repo](https://github.com/CheyneyComputerScience/CREMA-D).  According to the repo that repo's preparing **crema-d for training** subtitle to **convert videos to 25 fps** and **preprocess dataset**.
+4. To extract wavforms from mp4 files:
+
+```python
 python preparation/audio_extract.py --filelist $filelist  --video_root $video_root --audio_root $audio_root
 ```
-- $filelist: a txt file containing names of videos. We provide the filelist of LRW test set as an example in the datalist directory.  
-- $video_root: root directory of videos. In LRS2 dataset, $video_root should contains directories like "639XXX". In LRW dataset, $video_root should contains directories like "ABOUT". 
-- $audio_root: root directory for saving wavforms
-- other optional arguments: please refer to audio_extract.py  
 
-4. To detect bounding boxes in videos and save it:
-```
+- $filelist: a txt file containing names of videos. We provide the filelist of LRW test set as an example in the datalist directory.
+- $video_root: root directory of videos. In LRS2 dataset, $video_root should contains directories like "639XXX". In LRW dataset, $video_root should contains directories like "ABOUT".
+- $audio_root: root directory for saving wavforms
+- other optional arguments: please refer to audio_extract.py
+
+5. To extract wavforms from mp4 files:
+
+```python
 python preparation/bbx_extract.py --filelist $filelist  --video_root $video_root --bbx_root $bbx_root --gpu $gpu
 ```
+
 - $bbx_root: a root directory for saving detected bounding boxes
 - $gpu: run bbx_extract on a specific gpu. For example, 3.
 
-  *If you want to accelerate bbx_extract via multi-thread processing, you can use the following bash script:
-  
-  *Please revise variables in the 2-nd to the 9-th lines to make it compatible with your own machine.
-```
-sh preprocess.sh
-```
+## Train!
 
-- $file_list_dir: a directory which contains train.txt, valid.txt, test.txt of LRS2 dataset
-- $num_thread: number of threads you used. Please do not let it cross 8 with a 24GB GPU, 4 with a 12GB gpu.
+After installing the AV-Hubert, some files need to be modified.
 
-
-Checkpoints
-----------
-| Model  | Description |  Link  | 
-| :-------------: | :---------------: | :---------------: |
-| TalkLip (g)  | TalkLip net with the global audio encoder | [Link](https://drive.google.com/file/d/1iBXJmkS8rjzTBE6XOC3-XiXufEK2f1dj/view?usp=share_link)  |
-| TalkLip (g+c)  | TalkLip net with the global audio encoder and contrastive learning | [Link](https://drive.google.com/file/d/1nfPHicsHr2bOzvkdyoMk_GCYzJ3fqvI-/view?usp=share_link) |
-| Lip reading observer 1 | AV-hubert (large) fine-tuned on LRS2 | [Link](https://drive.google.com/file/d/1wOsiXKLOeScrU6XuzebYA6Y-9ncd8-le/view?usp=share_link) |
-| Lip reading observer 2 | Conformer lip-reading network | [Link](https://drive.google.com/file/d/16tpyaXLLTYUnIBT_YEWQ5ui6xUkBGcpM/view?usp=share_link) |
-| Lip reading expert | lip-reading network for training of talking face generation | [Link](https://drive.google.com/file/d/1XAVhWXjd77UHsfna9O8cASHr3iGiQBQU/view?usp=share_link) |
-| Discriminator | Discriminator of GAN | [Link](https://drive.google.com/file/d/17-3fqKCrHzkzyPnHJ_9_MuJ4zCkK5EU-/view?usp=sharing) |
-
-## Train 
-Some AV-Hubert files need to be modified.
-```
+```python
 rm xxx/av_hubert/avhubert/hubert_asr.py
 cp avhubert_modification/hubert_asr_wav2lip.py xxx/av_hubert/avhubert/hubert_asr.py
 
@@ -70,64 +49,72 @@ rm xxx/av_hubert/fairseq/fairseq/criterions/label_smoothed_cross_entropy.py
 cp avhubert_modification/label_smoothed_cross_entropy_wav2lip.py xxx/av_hubert/fairseq/fairseq/criterions/label_smoothed_cross_entropy.py
 ```
 
+
+
+We provide the pre-trained emotion-discrinminator. You can either use ours into $emo_disc_checkpoint_path or train your owns through [emogen](https://github.com/sahilg06/EmoGen). 
+
 You can train with the following command.
+
+```python
+python train_in_turn.py --file_dir $file_dir_for_crema_d --file_dir_2 $file_name_for_lrs2 --video_root $video_root_for_crema_d --audio_root $audio_root_for_crema_d --bbx_root $bbx_root_for_crema_d --word_root $word_root_for_lrs2 --avhubert_root $avhubert_root --avhubert_path $avhubert_path --checkpoint_dir $checkpoint_dir --gpu $num --gen_checkpoint_path $gen_checkpoint_path --disc_checkpoint_path $disc_checkpoint_path --emoGen_checkpoint_path $emogen_checkpoint_path --decoder_checkpoint_path $decoder_checkpoint_path --emo_disc_checkpoint_path $emo_disc_checkpoint_path 
 ```
-python train.py --file_dir $file_list_dir --video_root $video_root --audio_root $audio_root \
---bbx_root $bbx_root --word_root $word_root --avhubert_root $avhubert_root --avhubert_path $avhubert_path \
---checkpoint_dir $checkpoint_dir --log_name $log_name --cont_w $cont_w --lip_w $lip_w --perp_w $perp_w \
---gen_checkpoint_path $gen_checkpoint_path --disc_checkpoint_path $disc_checkpoint_path
-```
-- $file_list_dir: a directory which contains train.txt, valid.txt, test.txt of LRS2 dataset
+
+- $file_dir: a directory which contains filename.txt of Crema-d dataset
+- $file_dir_2: a directory which contains train.txt, valid.txt, test.txt of LRS2 dataset
 - $word_root: root directory of text annotation. Normally, it should be equal to $video_root, as LRS2 dataset puts a video file ".mp4" and its corresponding text file ".txt" in the same directory.
 - $avhubert_root: path of root of avhubert (should like xxx/av_hubert)
 - $avhubert_path: download the above Lip reading expert and enter its path
 - $checkpoint_dir: a directory to save checkpoint of talklip
+- $gen_checkpoint_dir(optional): enter the path of a generator checkpoint if you want to resume training from a checkpoint
+- $disc_checkpoint_dir(optional): enter the path of a discriminator checkpoint if you want to resume training from a checkpoint
+- $emoGen_checkpoint_dir(optional): enter the path of an emotion encoder checkpoint if you want to resume training from a checkpoint
+- $decoder_checkpoint_dir(optional): enter the path of a decider checkpoint if you want to resume training from a checkpoint
+- $emo_disc_checkpoint_dir(optional): enter the path of an emotion discriminator checkpoint if you want to resume training from a checkpoint
 - $log_name: name of log file
 - $cont_w: weight of contrastive learning loss (default: 1e-3)
 - $lip_w: weight of lip reading loss (default: 1e-5)
 - $perp_w: weight of perceptual loss (default: 0.07)
-- $gen_checkpoint_path(optional): enter the path of a generator checkpoint if you want to resume training from a checkpoint
-- $disc_checkpoint_path(optional): enter the path of a discriminator checkpoint if you want to resume training from a checkpoint
-
-Note: Sometimes, discriminator losses may diverge during training (close to 100). Please stop the training and resume it with a reliable checkpoint.
+- $e_w: weight of emotion loss (default: 0.01)
 
 
-## Test 
-The below command is to synthesize videos for quantitative evaluation in our paper.
-```
+
+## Test
+
+To test the model without emotion, you can follow the below command:
+
+```python
 python inf_test.py --filelist $filelist --video_root $video_root --audio_root $audio_root \
---bbx_root $bbx_root --save_root $syn_video_root --ckpt_path $talklip_ckpt --avhubert_root $avhubert_root
+--bbx_root $bbx_root --save_root $syn_video_root --ckpt_path $generator_ckpt --ckpt_emo_path $emotion_ckpt --ckpt_decoder_path $decoder_ckpt --avhubert_root $avhubert_root
 ```
-- $filelist: a txt file containing names of all test files, e.g. xxx/mvlrs_v1/test.txt.
+
+- $filelist: a txt file containing names of all test files
 - $syn_video_root: root directory for saving synthesized videos
-- $talklip_ckpt: a trained checkpoint of TalkLip net
+- $generator_ckpt, emotion_ckpt, decoder_ckpt: a trained checkpoint of EmoTalkLip net
 
+To test the model with all the emotions, you can follow the below command:
 
-## Demo
-I update the inf_demo.py on 4/April as I previously suppose that the height and width of output videos are the same when I set cv2.VideoWriter().
-Please ensure the sampling rate of the input audio file is 16000 hz.
-
-If you want to reenact the lip movement of a video with a different speech, you can use the following command. 
 ```
-python inf_demo.py --video_path $video_file --wav_path $audio_file --ckpt_path $talklip_ckpt --avhubert_root $avhubert_root
+python inf_all_emotions.py --filelist $filelist --video_root $video_root --audio_root $audio_root \
+--bbx_root $bbx_root --save_root $syn_video_root --ckpt_path $generator_ckpt --ckpt_emo_path $emotion_ckpt --ckpt_decoder_path $decoder_ckpt --avhubert_root $avhubert_root
 ```
+
+
+
+## Inference_demo
+
+You can inference a demo by the below code:
+
+```python
+python inf_demo.py --video_path $video_path --wav_path $wav_path --avhubert_root $avhubert_root --emotion $emotion --ckpt_path $generator_ckpt --emotion_encoder_ckpt_path $emotion_ckpt --decoder_ckpt_path $decoder_ckpt --save_path $syn_video_root --version $ver --task $ta --upscale $us  --cfg_scale $cfgs --output $ouput_path
+```
+
 - $video_file: a video file (end with .mp4)
 - $audio_file: an audio file (end with .wav)
+- $emotion: an emotion label in [ANG, DIS, FEA, HAP, NEU, SAD]
+- $ver, $ta, $us, $cfgs, $output, you can simply look up in **Blind Face Restoration** in [DiffBIR](https://github.com/XPixelGroup/DiffBIR)
 
-**Please ensure that the input audio only has one channel
+
 
 ## Evaluation
 
 Please follow README.md in the evaluation directory
-
-## Citation
-
-```
-@inproceedings{wang2023seeing,
-  title={Seeing What You Said: Talking Face Generation Guided by a Lip Reading Expert},
-  author={Wang, Jiadong and Qian, Xinyuan and Zhang, Malu and Tan, Robby T and Li, Haizhou},
-  booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition},
-  pages={14653--14662},
-  year={2023}
-}
-```
